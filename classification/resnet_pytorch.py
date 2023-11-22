@@ -54,7 +54,7 @@ class Unified(nn.Module):
         self.num_parameters = num_parameters
         super().__init__()
         lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs))
-        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs), a=-3.5, b=-3.0)
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs), a=-1.0, b=0.0)
         if num_parameters>1:
             self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
             self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))

@@ -11,25 +11,63 @@ from ..builder import BACKBONES
 from ..utils import ResLayer
 import torch
 
+class Unified(nn.Module):
+    __constants__ = ['num_parameters']
+    num_parameters: int
+
+    def __init__(self, num_parameters: int = 1,device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.num_parameters = num_parameters
+        super().__init__()
+        lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs))
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs), a=-1, b=0.0)
+        if num_parameters>1:
+            self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+            self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+        else:
+            self.lambda_param = nn.Parameter(lambda_param)
+            self.kappa_param = nn.Parameter(kappa_param)
+
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        lambda_param = torch.clamp(self.lambda_param,min=0.0001,max=10.0)
+        kappa = torch.clamp(self.kappa_param,min=-3.5,max=3.5)
+        return (lambda_param * torch.exp(-kappa*input)+1)**(-1/(lambda_param))
+
+    def extra_repr(self) -> str:
+        return 'num_parameters={}'.format(self.num_parameters)
+
 
 class SE_Block(nn.Module):
     "credits: https://github.com/moskomule/senet.pytorch/blob/master/senet/se_module.py#L4"
     def __init__(self, c, r=16,use_gumbel=False):
         super().__init__()
         self.squeeze = nn.AdaptiveAvgPool2d(1)
-        self.excitation = nn.Sequential(
-            nn.Linear(c, c // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(c // r, c, bias=False)
-        )
         self.use_gumbel = use_gumbel
+        if self.use_gumbel is True:
+            self.norm = nn.LayerNorm(c)
+            self.uniact=Unified()
+            self.excitation = nn.Sequential(
+                nn.Linear(c, c // r, bias=False),
+                nn.ReLU(inplace=True),
+                nn.Linear(c // r, c, bias=False),
+                nn.Dropout(p=0.1)
+            )
+        else:
+            self.excitation = nn.Sequential(
+                nn.Linear(c, c // r, bias=False),
+                nn.ReLU(inplace=True),
+                nn.Linear(c // r, c, bias=False)
+            )
 
     def forward(self, x):
         bs, c, _, _ = x.shape
         y = self.squeeze(x).view(bs, c)
+        if self.use_gumbel is True:
+            y= self.norm(y)
         y = self.excitation(y).view(bs, c, 1, 1)
         if self.use_gumbel is True:
-            y=torch.exp(-torch.exp(-torch.clamp(y,min=-4.0,max=10.0)))
+            y = self.uniact(y)
         else:
             y=y.sigmoid()
                         
