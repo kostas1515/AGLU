@@ -1,0 +1,7 @@
+slurm/*
+experiments/*
+batch_files/*
+classification/.ipynb_checkpoints/*
+classification/.svn/*
+classification/*.ipynb
+classification/__pycache__/*
