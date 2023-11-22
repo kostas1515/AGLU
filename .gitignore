@@ -5,3 +5,4 @@ classification/.ipynb_checkpoints/*
 classification/.svn/*
 classification/*.ipynb
 classification/__pycache__/*
+instance_segmentation/experiments/*
