@@ -5,17 +5,11 @@ from scipy.special import ndtri
 import itertools
 
 class BCE(nn.Module):
-    def __init__(self,reduction='mean',label_smoothing=0.0,use_gumbel=False,use_normal=False,weight=None):
+    def __init__(self,reduction='mean',label_smoothing=0.0,weight=None):
         super(BCE, self).__init__()
         self.reduction = reduction
-        self.label_smoothing = label_smoothing
-        self.use_gumbel=use_gumbel
-        self.use_normal=use_normal
-        
-        if self.use_gumbel is True:
-            self.loss_fcn = nn.BCELoss(reduction='none',weight=weight)
-        else:
-            self.loss_fcn = nn.BCEWithLogitsLoss(reduction='none',weight=weight)
+        self.label_smoothing = label_smoothing  
+        self.loss_fcn = nn.BCEWithLogitsLoss(reduction='none',weight=weight)
         
     def forward(self, pred, targets):
         nc=pred.shape[-1]
@@ -27,14 +21,8 @@ class BCE(nn.Module):
         else:
             y_onehot_smoothed = targets*(1-self.label_smoothing) + self.label_smoothing/nc
 
-        if self.use_gumbel is True:
-            pestim = torch.exp(-torch.exp(-torch.clamp(pred,min=-4.0,max=10.0)))
-            loss = self.loss_fcn(pestim,y_onehot_smoothed)
-        elif self.use_normal is True:
-            pestim=1/2+torch.erf(-torch.clamp(pred,min=-8.0,max=8.0)/(2**(1/2)))/2
-            loss = self.loss_fcn(pestim,y_onehot_smoothed)
-        else:
-            loss = self.loss_fcn(pred,y_onehot_smoothed)
+
+        loss = self.loss_fcn(pred,y_onehot_smoothed)
             
         if self.reduction=='mean':
             loss=loss.mean()

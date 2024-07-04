@@ -54,7 +54,9 @@ class Unified(nn.Module):
         self.num_parameters = num_parameters
         super().__init__()
         lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs))
-        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs), a=-1.0, b=0.0)
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=-1.0,b=0.0) #works well with this init
+        self.softplus = nn.Softplus(beta=-1.0)
+        
         if num_parameters>1:
             self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
             self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
@@ -62,11 +64,71 @@ class Unified(nn.Module):
             self.lambda_param = nn.Parameter(lambda_param)
             self.kappa_param = nn.Parameter(kappa_param)
 
-
+    
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        lambda_param = torch.clamp(self.lambda_param,min=0.0001,max=10.0)
-        kappa = torch.clamp(self.kappa_param,min=-3.5,max=3.5)
-        return (lambda_param * torch.exp(-kappa*input)+1)**(-1/(lambda_param))
+        l = torch.clamp(self.lambda_param,min=0.0001)
+        p = torch.exp((1/l) * self.softplus((self.kappa_param*input) - torch.log(l)))
+        
+        return p
+
+    def extra_repr(self) -> str:
+        return 'num_parameters={}'.format(self.num_parameters)
+    
+
+
+class UniRect_static(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, input, lambda_param, kappa_param):
+        # normal forward pass
+#         input, lambda_param, kappa_param = input.detach(), lambda_param.detach(), kappa_param.detach()
+        p  = torch.exp((1/lambda_param) * torch.nn.functional.softplus(kappa_param*input -torch.log(lambda_param), beta=-1.0, threshold=20))
+        ctx.save_for_backward(input, lambda_param, kappa_param,p)
+        out = p * input
+
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, lambda_param, kappa_param, p = ctx.saved_tensors
+        sigmoidal_coeff = p/(lambda_param + torch.exp(kappa_param*input))
+
+        part_grad_kappa = (input**2)*sigmoidal_coeff
+        part_grad_lambda = (-input/lambda_param)*sigmoidal_coeff
+        part_grad_input = kappa_param*input*sigmoidal_coeff + p
+
+        grad_input = grad_output*part_grad_input
+        grad_lambda = grad_output*part_grad_lambda
+        grad_kappa = grad_output*part_grad_kappa
+
+        return grad_input, grad_lambda, grad_kappa
+
+
+class UniRect(nn.Module):
+    __constants__ = ['num_parameters']
+    num_parameters: int
+
+    def __init__(self, num_parameters: int = 1,lambda_init=(0.0,1.0),kappa_init=(0.8,1.2),device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.num_parameters = num_parameters
+        super().__init__()
+        lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=lambda_init[0],b=lambda_init[1])
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=kappa_init[0],b=kappa_init[1])
+
+        if num_parameters>1:
+            self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+            self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+        else:
+            self.lambda_param = nn.Parameter(lambda_param)
+            self.kappa_param = nn.Parameter(kappa_param)
+
+        self.relu = torch.nn.ReLU()
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        lambda_param = self.relu(self.lambda_param) + 1e-8
+        out = UniRect_static.apply(input, lambda_param, self.kappa_param)
+
+        return out
 
     def extra_repr(self) -> str:
         return 'num_parameters={}'.format(self.num_parameters)
@@ -181,6 +243,7 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
+        
 
         out = self.conv2(out)
         out = self.bn2(out)
@@ -194,6 +257,7 @@ class Bottleneck(nn.Module):
 
         out += identity
         out = self.relu(out)
+        
 
         return out
 
@@ -215,6 +279,7 @@ class ResNet(nn.Module):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
+        self.dual_head=False
         self.inplanes = 64
         self.dilation = 1
         if replace_stride_with_dilation is None:
@@ -230,7 +295,14 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
+        
+        if block.__name__.endswith('Gumbel') is True:
+            self.relu = UniRect()
+        else:
+            self.relu = nn.ReLU(inplace=True)
+            
+            
+        
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
@@ -466,6 +538,7 @@ class SE_Block(nn.Module):
         super().__init__()
         self.squeeze = nn.AdaptiveAvgPool2d(1)
         self.use_gumbel = use_gumbel
+        
         if self.use_gumbel is True:
             self.norm = nn.LayerNorm(c)
             self.uniact=Unified()
@@ -591,7 +664,9 @@ class SEBottleneckGumbel(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
+        self.unirect3 = UniRect()
         self.downsample = downsample
         self.stride = stride
         # add SE block
@@ -602,11 +677,13 @@ class SEBottleneckGumbel(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.unirect1(out)
+        
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.unirect2(out)
+
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -618,7 +695,8 @@ class SEBottleneckGumbel(nn.Module):
             identity = self.downsample(x)
 
         out += identity
-        out = self.relu(out)
+        out = self.unirect3(out)
+
 
         return out
     
@@ -655,7 +733,9 @@ class CBAMBottleneckGumbel(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
+        self.unirect3 = UniRect()
         self.downsample = downsample
         self.stride = stride
         # add SE block
@@ -666,11 +746,11 @@ class CBAMBottleneckGumbel(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.unirect1(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.unirect2(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -682,7 +762,9 @@ class CBAMBottleneckGumbel(nn.Module):
             identity = self.downsample(x)
 
         out += identity
-        out = self.relu(out)
+#         out = self.relu(out)
+        out = self.unirect3(out)
+        
 
         return out
     
@@ -718,7 +800,9 @@ class SpatialBottleneckGumbel(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
+        self.unirect3 = UniRect()
         self.downsample = downsample
         self.stride = stride
         # add SE block
@@ -729,11 +813,11 @@ class SpatialBottleneckGumbel(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.unirect1(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.unirect2(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -745,7 +829,8 @@ class SpatialBottleneckGumbel(nn.Module):
             identity = self.downsample(x)
 
         out += identity
-        out = self.relu(out)
+        out = self.unirect3(out)
+        
 
         return out
 
@@ -844,7 +929,9 @@ class CBAMBottleneckGumbelSigmoid(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
+        self.unirect3 = UniRect()
         self.downsample = downsample
         self.stride = stride
         # add SE block
@@ -855,11 +942,11 @@ class CBAMBottleneckGumbelSigmoid(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.unirect1(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.unirect2(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -871,7 +958,7 @@ class CBAMBottleneckGumbelSigmoid(nn.Module):
             identity = self.downsample(x)
 
         out += identity
-        out = self.relu(out)
+        out = self.unirect3(out)
 
         return out
     
@@ -1042,7 +1129,7 @@ def se_resnet101(pretrained: bool = False, progress: bool = True,use_norm: str =
         return _resnet("resnet101", SEBottleneck, [3, 4, 23, 3], pretrained, progress,use_norm=use_norm, **kwargs)
 
 
-def resnet152(pretrained: str = None, progress: bool = True,use_norm: str = None,  **kwargs: Any) -> ResNet:
+def resnet152(pretrained: str = None, progress: bool = True,use_norm: str = None,use_gumbel=False,use_gumbel_cb=False,  **kwargs: Any) -> ResNet:
     r"""ResNet-152 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     Args:

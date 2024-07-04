@@ -10,6 +10,9 @@ import torchvision
 import torchvision.models as models
 import torch.distributed as dist
 
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True
+
 try:
     import presets
     import transforms
@@ -363,6 +366,7 @@ def main(args):
 
     print("Creating model")
     model = initialise_model.get_model(args,num_classes)
+#     model = torch.compile(model)
     model.to(device)
 
     if args.distributed and args.sync_bn:
@@ -561,7 +565,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--use_gumbel_se', default=False, help='Gumbel activation in excitation phase of SE',action='store_true')
     parser.add_argument('--use_gumbel_cb', default=False, help='Gumbel activation in spatial attention phase of CB',action='store_true')
     parser.add_argument('--classif_norm', default=None,type=str, help='Type of classifier Normalisation {None,norm,cosine')
-    parser.add_argument('--criterion', default='ce',type=str, help='Criterion used for classifier {ce,bce,gce')
+    parser.add_argument('--criterion', default='ce',type=str, help='Criterion used for classifier {ce,bce,iif')
     parser.add_argument('--ms_train',default=False, action='store_true',
                         help='Use Multi-scale training')
     

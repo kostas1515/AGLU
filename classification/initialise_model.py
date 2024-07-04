@@ -50,10 +50,6 @@ def get_criterion(args,dataset,model=None):
         weight=None
     if args.criterion =='ce':
         return torch.nn.CrossEntropyLoss(label_smoothing=args.label_smoothing,weight=weight)
-    elif args.criterion =='gce':
-        return custom.BCE(label_smoothing=args.label_smoothing,use_gumbel=True,weight=weight,reduction=args.reduction)
-    elif args.criterion =='nce':
-        return custom.BCE(label_smoothing=args.label_smoothing,use_normal=True,weight=weight,reduction=args.reduction)
     elif args.criterion =='iif':
         return custom.IIFLoss(dataset,weight=weight,variant=args.iif,label_smoothing=args.label_smoothing)
     elif args.criterion =='bce':
@@ -63,20 +59,7 @@ def get_criterion(args,dataset,model=None):
 
 def initialise_classifier(args,model,num_classes):
     num_classes = torch.tensor([num_classes])
-    if (args.criterion == 'gce')|(args.criterion == 'nce'):
-        if args.dset_name.startswith('cifar'):
-            torch.nn.init.normal_(model.linear.weight.data,0.0,0.001)
-        else:
-            torch.nn.init.normal_(model.fc.weight.data,0.0,0.001)
-        try:
-            if args.dset_name.startswith('cifar'):
-                torch.nn.init.constant_(model.linear.bias.data,-torch.log(torch.log(num_classes)).item())
-            else:
-                torch.nn.init.constant_(model.fc.bias.data,-torch.log(torch.log(num_classes)).item())
-        except AttributeError:
-            print('no bias in classifier head')
-            pass
-    elif args.criterion == 'bce':
+    if args.criterion == 'bce':
         if args.dset_name.startswith('cifar'):
             torch.nn.init.normal_(model.linear.weight.data,0.0,0.001)
         else:
