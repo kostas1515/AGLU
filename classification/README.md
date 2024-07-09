@@ -1,3 +1,13 @@
+<h1> Tested with </h1>
+<div>
+ <ul>
+  <li>python==3.10.14</li>
+  <li>torch==2.1.2</li>
+  <li>Tested on CUDA 12</li>
+</ul> 
+</div>
+<b>Please note that there is a reproducibility issue on other CUDA 11.x and CUDA 10.x versions.</b>
+
 # Image classification reference training and testing scripts 
 
 This folder contains reference training and testing scripts for image classification.
@@ -9,7 +19,7 @@ training and evaluation scripts to quickly bootstrap research.
 
 | Parameter                | value  | description  |
 | ------------------------ | ------ |--------------|
-| `--model`                |`se_resnet32,se_resnet50,cb_resnet50,simple_vit`|model name, it can be resnet, se_resnet or simple_vit. Check initialise_model.py fyi |
+| `--model`                |`se_resnet32,se_resnet50,cb_resnet50`|model name, it can be resnet, se_resnet or simple_vit. Check initialise_model.py fyi |
 | `--dset_name`            |`cifar{100}, inat18, imagenet_lt, places_lt`|dataset name |
 | `--data_path`            |`../../../datasets/`| data path, please change hardcoded paths |
 | `--classif_norm`         |`cosine,lr_cosine`| classifier layr, it can be Linear, Cosine, or Cosine with Learnable weight, check resnet_cifar.py fyi |
@@ -19,7 +29,6 @@ training and evaluation scripts to quickly bootstrap research.
 | `--criterion`            | `ce,iif`| When iif, is used then PC_softmax is applied during inference.|
 | `--use_gumbel_se`        | `store_true`|It will use Gumbel Channel Attention.|
 | `--use_gumbel_cb`        | `store_true`|It will use Gumbel Spatial Attention.|
-| `--attn`                 | `softmax,gumbel`| Type of self-attention used in ViT|
 | `--fn_places`            | `store_true`|This will freeze the backbone, except for last residual block. Applicable for places finetuning|
 | `--pretrained`           |`data-path-to-pretrained-checkpoint`| It will initialise the model's weights from predefined checkpoint|
 | `--decoup`               | `store_true`|Freeze Backbone and train only classifier as in decoupled strategy|
@@ -37,15 +46,7 @@ torchrun --nproc_per_node=1 train.py --model se_resnet32 --batch-size 512 --lr 0
 ### ImageNet-LT 
 For ImageNet-LT dataset, all models have been trained on 4x V100 GPUs. For 200 epoch training use this:
 ```
-torchrun --nproc_per_node=4  train.py --dset_name=imagenet_lt --model se_resnet50 --output-dir ../experiments/se_r50_ilt_ce_mean_wd1e-4_e200_ilt_gumbel_se -b 64 --lr-scheduler cosineannealinglr --reduction mean --lr 0.2 --epochs 200 --mixup 0.2 --auto-augment imagenet --classif_norm cosine --wd 0.0001 --use_gumbel_se --criterion iif
-```
-For 600 epoch training and stronger results use this:
-```
-torchrun --nproc_per_node=4 train.py --model se_resnet50 --batch-size 256 --lr 0.5 --lr-scheduler cosineannealinglr --lr-warmup-epochs 5 --lr-warmup-method linear --auto-augment imagenet --epochs 600 --weight-decay 0.0001 --norm-weight-decay 0.0 --label-smoothing 0.1 --mixup-alpha 0.2 --cutmix-alpha 1.0 --train-crop-size 176 --val-resize-size 232 --dset_name=imagenet_lt --output-dir ../experiments/se_r50_ilt_ce_mean_wd1e-4_b256_e600_aa_gumbel_se --classif_norm cosine --use_gumbel_se --criterion iif
-```
-For training ViTs on ImageNet-LT use:
-```
-torchrun --nproc_per_node=8 train.py --model b_simple_vit --batch-size 32 --classif_norm cosine --lr 0.2 --lr-scheduler cosineannealinglr --lr-warmup-epochs 3 --lr-warmup-method linear --auto-augment imagenet --epochs 200 --weight-decay 1e-5 --mixup-alpha 0.2 --cutmix-alpha 1.0 --dset_name=imagenet_lt --label-smoothing 0.1 --output-dir ../experiments/ilt_vit_b_gumbel --attn gumbel
+torchrun --nproc_per_node=4  train.py --dset_name=imagenet_lt --model se_resnet50 --output-dir ../experiments/test -b 64 --lr-scheduler cosineannealinglr --reduction mean --lr 0.2 --epochs 200 --mixup 0.2 --auto-augment imagenet --classif_norm cosine --wd 0.0001 --use_gumbel_se --criterion iif --amp
 ```
 
 ### Places-LT
@@ -61,11 +62,6 @@ Then freeze all parameters except for final Resnet-block and Classifier and trai
 torchrun --nproc_per_node=4 train.py --dset_name places_lt --data-path ../../../datasets/places365_standard/ --model se_resnet152 --epochs 40 -b 64 --lr 0.1 --output-dir ../experiments/se_r152_places_ra_gumbel_se_v2/ --wd 5e-05 --lr-scheduler cosineannealinglr --lr-warmup-epochs 3 --lr-warmup-method linear --pretrained ../experiments/se_r152_inet_e100_aaug_gumbel_se/model_99.pth --mixup 0.2 --auto-augment imagenet --classif_norm lr_cosine --label-smoothing 0.1 --cutmix-alpha 1.0 --use_gumbel_se --criterion iif --fn_places
 ```
 
-For training ViTs on Places-LT use:
-```
-torchrun --nproc_per_node=4 train.py --dset_name places_lt --data-path ../../../datasets/places365_standard/ --model s_simple_vit --epochs 15 -b 64 --lr 0.1 --output-dir ../experiments/places_vit/ --wd 5e-05 --lr-scheduler cosineannealinglr --lr-warmup-epochs 3 --lr-warmup-method linear --mixup 0.2 --auto-augment imagenet --classif_norm lr_cosine --label-smoothing 0.1 --cutmix-alpha 1.0 --pretrained ../pretrained/vit_s_cosine/model_199.pth --criterion iif --epochs 15 --attn gumbel
-```
-
 ### iNaturalist18
 For iNaturalist, the model was trained using 4x V100 GPUs with:
 
@@ -73,7 +69,44 @@ For iNaturalist, the model was trained using 4x V100 GPUs with:
 torchrun --nproc_per_node=4 train.py --model se_resnet50 --data-path ../../../datasets/  --batch-size 256 --lr 0.5 --lr-scheduler cosineannealinglr --lr-warmup-epochs 5 --lr-warmup-method linear --auto-augment ra  --epochs 500 --random-erase 0.1 --weight-decay 0.0001 --norm-weight-decay 0.0 --label-smoothing 0.1 --mixup-alpha 0.2 --cutmix-alpha 1.0 --train-crop-size 176 --val-resize-size 232 --ra-sampler --ra-reps 4 --dset_name=inat18 --output-dir ../experiments/inat_se_r50_softmax_e500_cosine_mixup_wd1e-4_aug_gumbel_se/ --classif_norm cosine --use_gumbel_se
 ```
 
-For training ViTs on iNaturalist use:
-```
-torchrun --nproc_per_node=8 train.py --model b_simple_vit --batch-size 128 --lr 0.4 --lr-scheduler cosineannealinglr --lr-warmup-epochs 3 --lr-warmup-method linear --auto-augment ra --epochs 500 --weight-decay 0.00001 --mixup-alpha 0.2 --cutmix-alpha 1.0 --label-smoothing 0.1 --dset_name=inat18 --random-erase 0.1 --ra-sampler --ra-reps 4 --output-dir ../experiments/inat_vit_b_e500_b1024_cos_ra_softmax_gumbel --classif_norm cosine --train-crop-size 192 --val-resize-size 232 --attn gumbel --data-path ../../../datasets/ --apex
-```
+
+## Results and Models
+Please download the model weights and then run inference with Post-processing IIF to get the below results. 
+<table style="float: left; margin-right: 10px;">
+    <tr>
+        <th>Dataset</th>
+        <th>Backbone</th>
+        <th>top-1</th>
+        <th>Model</th>
+        <th>Log</th>
+    </tr>
+    <tr>
+        <td>ImageNet-LT</td>
+        <td>SE-R50</td>
+        <td>57.9</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1xl6yPojp1rCQ-XOaW36SQoCa53Yiz5aK&export=download">weights</a></td>
+        <td><a href="https://drive.google.com/file/d/1UNfCrF7cI5DX-VWWRz6TQPBuwbnjybB8/view">log</a></td>
+    </tr>
+     <tr>
+        <td>ImageNet-LT</td>
+        <td>SE-X50</td>
+        <td>59.1</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1tCy9g1pt-HguKHBDqJldoCAa979kivwk&export=download&authuser=0">weights</a></td>
+        <td><a href="https://drive.google.com/file/d/1A_2wvVcLoYsu9ecBOlI4_yZSE3B6pIPg/view">log</a></td>
+    </tr>
+    <tr>
+        <td>ImageNet1K</td>
+        <td>SE-R50</td>
+        <td>-</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1MwMpCXKfKHoq8ZUBlZR_2rtzN9GDE_TE&export=download">weights</a></td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1xDoUue8UdC0I3qT02xviPrPLP9kZfYD8&export=download">log</a></td>
+    </tr>
+    <tr>
+        <td>ImageNet1K</td>
+        <td>SE-R101</td>
+        <td>-</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1wOl6mJekE2_bOXcPfpoS5xxvjPe8Q_kL&export=download">weights</a></td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1wOl6mJekE2_bOXcPfpoS5xxvjPe8Q_kL&export=download">log</a></td>
+    </tr>
+</table>
+

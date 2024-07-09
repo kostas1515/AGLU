@@ -10,9 +10,6 @@ import torchvision
 import torchvision.models as models
 import torch.distributed as dist
 
-import torch._dynamo
-torch._dynamo.config.suppress_errors = True
-
 try:
     import presets
     import transforms
@@ -366,7 +363,6 @@ def main(args):
 
     print("Creating model")
     model = initialise_model.get_model(args,num_classes)
-#     model = torch.compile(model)
     model.to(device)
 
     if args.distributed and args.sync_bn:
@@ -490,7 +486,7 @@ def main(args):
             
     if args.load_from:
         checkpoint = torch.load(args.load_from, map_location="cpu")
-        model_without_ddp.load_state_dict(checkpoint["model"],strict=False)
+        model_without_ddp.load_state_dict(checkpoint["model"],strict=True)
 
     if args.test_only:
         # We disable the cudnn benchmarking because it can noticeably affect the accuracy
@@ -661,7 +657,7 @@ def get_args_parser(add_help=True):
     parser.add_argument("--random-erase", default=0.0, type=float, help="random erasing probability (default: 0.0)")
     parser.add_argument('--sampler', default='random', type=str, help='sampling, [random,upsampling,downsampling]')
     parser.add_argument('--reduction', default='mean', type=str, help='reduce mini batch')
-    parser.add_argument('--iif', default='raw',type=str, help='Type of IIF variant- applicable if classif iif')
+    parser.add_argument('--iif', default='rel',type=str, help='Type of IIF variant- applicable if classif iif')
     
 
     # Mixed precision training parameters
