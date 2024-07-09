@@ -19,7 +19,7 @@ training and evaluation scripts to quickly bootstrap research.
 
 | Parameter                | value  | description  |
 | ------------------------ | ------ |--------------|
-| `--model`                |`se_resnet32,se_resnet50,cb_resnet50`|model name, it can be resnet, se_resnet or simple_vit. Check initialise_model.py fyi |
+| `--model`                |`se_resnet32,se_resnet50,cb_resnet50`|model name, it can be resnet, se_resnet. Check initialise_model.py fyi |
 | `--dset_name`            |`cifar{100}, inat18, imagenet_lt, places_lt`|dataset name |
 | `--data_path`            |`../../../datasets/`| data path, please change hardcoded paths |
 | `--classif_norm`         |`cosine,lr_cosine`| classifier layr, it can be Linear, Cosine, or Cosine with Learnable weight, check resnet_cifar.py fyi |
@@ -66,7 +66,7 @@ torchrun --nproc_per_node=4 train.py --dset_name places_lt --data-path ../../../
 For iNaturalist, the model was trained using 4x V100 GPUs with:
 
 ```
-torchrun --nproc_per_node=4 train.py --model se_resnet50 --data-path ../../../datasets/  --batch-size 256 --lr 0.5 --lr-scheduler cosineannealinglr --lr-warmup-epochs 5 --lr-warmup-method linear --auto-augment ra  --epochs 500 --random-erase 0.1 --weight-decay 0.0001 --norm-weight-decay 0.0 --label-smoothing 0.1 --mixup-alpha 0.2 --cutmix-alpha 1.0 --train-crop-size 176 --val-resize-size 232 --ra-sampler --ra-reps 4 --dset_name=inat18 --output-dir ../experiments/inat_se_r50_softmax_e500_cosine_mixup_wd1e-4_aug_gumbel_se/ --classif_norm cosine --use_gumbel_se
+torchrun --nproc_per_node=4 train.py --model se_resnet50 --data-path ../../../datasets/  --batch-size 256 --lr 0.5 --lr-scheduler cosineannealinglr --lr-warmup-epochs 5 --lr-warmup-method linear --auto-augment ra  --epochs 500 --random-erase 0.1 --weight-decay 0.0001 --norm-weight-decay 0.0 --label-smoothing 0.1 --mixup-alpha 0.2 --cutmix-alpha 1.0 --train-crop-size 192 --val-resize-size 232 --ra-sampler --ra-reps 4 --dset_name=inat18 --output-dir ../experiments/inat_se_r50_softmax_e500_cosine_mixup_wd1e-4_aug_gumbel_se/ --classif_norm cosine --use_gumbel_se
 ```
 
 
@@ -97,16 +97,30 @@ Please download the model weights and then run inference with Post-processing II
     <tr>
         <td>ImageNet1K</td>
         <td>SE-R50</td>
-        <td>-</td>
+        <td>78.7</td>
         <td><a href="https://drive.usercontent.google.com/download?id=1MwMpCXKfKHoq8ZUBlZR_2rtzN9GDE_TE&export=download">weights</a></td>
         <td><a href="https://drive.usercontent.google.com/download?id=1xDoUue8UdC0I3qT02xviPrPLP9kZfYD8&export=download">log</a></td>
     </tr>
     <tr>
         <td>ImageNet1K</td>
+        <td>CBAM-R50</td>
+        <td>78.9</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1FGs8bIvjYcMa8fqNcyjxQ-GvC8QIrBLU&export=download">weights</a></td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1ISqDou73MbMUjd7M-tRYw8hMbXwDAmoE&export=download">log</a></td>
+    </tr>
+    <tr>
+        <td>ImageNet1K</td>
         <td>SE-R101</td>
-        <td>-</td>
-        <td><a href="https://drive.usercontent.google.com/download?id=1wOl6mJekE2_bOXcPfpoS5xxvjPe8Q_kL&export=download">weights</a></td>
+        <td>80.3</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1sPrONipvrumno8kZ6EwRfcc1v6sWA7cg&export=download">weights</a></td>
         <td><a href="https://drive.usercontent.google.com/download?id=1wOl6mJekE2_bOXcPfpoS5xxvjPe8Q_kL&export=download">log</a></td>
+    </tr>
+    <tr>
+        <td>ImageNet1K</td>
+        <td>SE-R152</td>
+        <td>-</td>
+        <td><a href="https://drive.usercontent.google.com/download?id=1wrcme0S6rt7KKgZA_1HHm3uf2m0T9UwB&export=download">weights</a></td>
+        <td><a href="-">log</a></td>
     </tr>
 </table>
 

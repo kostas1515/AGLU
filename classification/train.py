@@ -371,9 +371,8 @@ def main(args):
     criterion = initialise_model.get_criterion(args,dataset,model)
     
     custom_keys_weight_decay = []
-    if args.bias_weight_decay is not None:
-        custom_keys_weight_decay.append(("lambda_param", args.bias_weight_decay))
-        custom_keys_weight_decay.append(("kappa_param", args.bias_weight_decay))
+    custom_keys_weight_decay.append(("lambda_param", 0.0))
+    custom_keys_weight_decay.append(("kappa_param", 0.0))
 
     parameters = utils.set_weight_decay(
         model,
@@ -591,12 +590,6 @@ def get_args_parser(add_help=True):
         default=None,
         type=float,
         help="weight decay for Normalization layers (default: None, same value as --wd)",
-    )
-    parser.add_argument(
-        "--bias-weight-decay",
-        default=None,
-        type=float,
-        help="weight decay for lambda and kappa parameters of all AGCA layers (default: None, same value as --wd)",
     )
     parser.add_argument(
         "--label-smoothing", default=0.0, type=float, help="label smoothing (default: 0.0)", dest="label_smoothing"
