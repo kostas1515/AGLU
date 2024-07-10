@@ -39,7 +39,9 @@ training and evaluation scripts to quickly bootstrap research.
 For CIFAR-LT datasets, all models have been trained on 1x V100 GPUs with 
 the following parameters:
 ```
-torchrun --nproc_per_node=1 train.py --model se_resnet32 --batch-size 512 --lr 0.2 --lr-warmup-epochs 3 --lr-warmup-method linear --auto-augment cifar10 --epochs 500 --weight-decay 0.001 --mixup-alpha 0.2 --dset_name=cifar100 --output-dir ../experiments/c100_imb100_se_r32_b512_e500_wd1e3_gumbel_iif_se --classif_norm cosine --lr-scheduler cosineannealinglr --imb_factor 0.01 --use_gumbel_se --criterion iif
+torchrun --nproc_per_node=1 train.py --model se_resnet32 --batch-size 512 --lr 0.2 --lr-warmup-epochs 3 --lr-warmup-method linear --auto-augment cifar10 --epochs 500 --weight-decay 0.001 --mixup-alpha 0.2 --dset_name=cifar100 --output-dir ../experiments/test --classif_norm cosine --lr-scheduler cosineannealinglr --imb_factor 0.01 --use_gumbel_se --criterion iif
+
+
 ```
 
 

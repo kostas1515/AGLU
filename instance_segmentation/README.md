@@ -1,32 +1,3 @@
-<h1> Gumbel Optimised Loss for Long-tailed Instance Segmentation </h1>
-
-This is the official implementation of Gumbel Optimised Loss for Long-tailed Instance Segmentation for ECCV2022 accepted paper.
-
-Gumbel Activation using (M)ask-RCNN, (R)esnet,Resne(X)t, (C)ascade Mask-RCNN and (H)ybrid Task Cascade.
-<img src="./figures/ap_maskrcnn.jpg"
-     alt="Performance of Gumbel activation"
-     style="float: left; margin-right: 10px;"
-/>
-<h1> Gumbel Cross Entropy (simplified)</h1>
-
-```
-def gumbel_cross_entropy(pred,
-                         label,reduction):
-    """Calculate the Gumbel CrossEntropy loss.
-    Args:
-        pred (torch.Tensor): The prediction.
-        label (torch.Tensor): one-hot encoded
-    Returns:
-        torch.Tensor: The calculated loss.
-    """
-    pred=torch.clamp(pred,min=-4,max=10)
-    pestim= 1/(torch.exp(torch.exp(-(pred))))
-    loss = F.binary_cross_entropy(
-        pestim, label.float(), reduction=reduction)
-    loss=torch.clamp(loss,min=0,max=20)
-
-    return loss
-```
 
 <h1> Tested with </h1>
 <div>

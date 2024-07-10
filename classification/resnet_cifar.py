@@ -42,17 +42,81 @@ class Unified(nn.Module):
         factory_kwargs = {'device': device, 'dtype': dtype}
         self.num_parameters = num_parameters
         super().__init__()
+        lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs))
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=-1.0,b=0.0) #works well with this init
+        self.softplus = nn.Softplus(beta=-1.0)
         
-        init1=torch.rand(1).item()
-        self.lambda_param = nn.Parameter(torch.empty(num_parameters, **factory_kwargs).fill_(init1))
-        init2=-torch.rand(1).item()
-        self.kappa_param = nn.Parameter(torch.empty(num_parameters, **factory_kwargs).fill_(init2))
+        if num_parameters>1:
+            self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+            self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+        else:
+            self.lambda_param = nn.Parameter(lambda_param)
+            self.kappa_param = nn.Parameter(kappa_param)
 
-
+    
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        lambda_param = torch.clamp(self.lambda_param,min=0.0001,max=10)
-        kappa_param = torch.clamp(self.kappa_param,min=-3.5,max=3.5)
-        out= (lambda_param*torch.exp(-input*kappa_param)+1)**(-1/lambda_param)
+        l = torch.clamp(self.lambda_param,min=0.0001)
+        p = torch.exp((1/l) * self.softplus((self.kappa_param*input) - torch.log(l)))
+        
+        return p
+
+    def extra_repr(self) -> str:
+        return 'num_parameters={}'.format(self.num_parameters)
+    
+
+
+class UniRect_static(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, input, lambda_param, kappa_param):
+        # normal forward pass
+#         input, lambda_param, kappa_param = input.detach(), lambda_param.detach(), kappa_param.detach()
+        p  = torch.exp((1/lambda_param) * torch.nn.functional.softplus(kappa_param*input -torch.log(lambda_param), beta=-1.0, threshold=20))
+        ctx.save_for_backward(input, lambda_param, kappa_param,p)
+        out = p * input
+
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, lambda_param, kappa_param, p = ctx.saved_tensors
+        sigmoidal_coeff = p/(lambda_param + torch.exp(kappa_param*input))
+
+        part_grad_kappa = (input**2)*sigmoidal_coeff
+        part_grad_lambda = (-input/lambda_param)*sigmoidal_coeff
+        part_grad_input = kappa_param*input*sigmoidal_coeff + p
+
+        grad_input = grad_output*part_grad_input
+        grad_lambda = grad_output*part_grad_lambda
+        grad_kappa = grad_output*part_grad_kappa
+
+        return grad_input, grad_lambda, grad_kappa
+
+
+class UniRect(nn.Module):
+    __constants__ = ['num_parameters']
+    num_parameters: int
+
+    def __init__(self, num_parameters: int = 1,lambda_init=(0.0,1.0),kappa_init=(0.8,1.2),device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.num_parameters = num_parameters
+        super().__init__()
+        lambda_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=lambda_init[0],b=lambda_init[1])
+        kappa_param = torch.nn.init.uniform_(torch.empty(num_parameters, **factory_kwargs),a=kappa_init[0],b=kappa_init[1])
+
+        if num_parameters>1:
+            self.lambda_param = nn.Parameter(lambda_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+            self.kappa_param = nn.Parameter(kappa_param.unsqueeze(0).unsqueeze(-1).unsqueeze(-1))
+        else:
+            self.lambda_param = nn.Parameter(lambda_param)
+            self.kappa_param = nn.Parameter(kappa_param)
+
+        self.relu = torch.nn.ReLU()
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        lambda_param = self.relu(self.lambda_param) + 1e-8
+        out = UniRect_static.apply(input, lambda_param, self.kappa_param)
+
         return out
 
     def extra_repr(self) -> str:
@@ -216,6 +280,41 @@ class BasicBlock(nn.Module):
         
         return out
 
+
+class BasicBlockGumbel(nn.Module):
+    expansion = 1
+
+    def __init__(self, in_planes, planes, stride=1, option='A'):
+        super(BasicBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
+        
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != planes:
+            if option == 'A':
+                """
+                For CIFAR10 ResNet paper uses option A.
+                """
+                self.shortcut = LambdaLayer(lambda x:
+                                            F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes//4, planes//4), "constant", 0))
+            elif option == 'B':
+                self.shortcut = nn.Sequential(
+                     nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                     nn.BatchNorm2d(self.expansion * planes)
+                )
+
+    def forward(self, x):
+        out = self.unirect1(self.bn1(self.conv1(x)))        
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)
+        out = self.unirect2(out)
+        
+        return out
+
 class Se_Block(nn.Module):
     expansion = 1
 
@@ -259,6 +358,8 @@ class Se_Block_Gumbel(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.se = SE_Block(planes,use_gumbel=True)
         self.shortcut = nn.Sequential()
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
         if stride != 1 or in_planes != planes:
             if option == 'A':
                 """
@@ -273,11 +374,11 @@ class Se_Block_Gumbel(nn.Module):
                 )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))        
+        out = self.unirect1(self.bn1(self.conv1(x)))        
         out = self.bn2(self.conv2(out))
         out = self.se(out)
         out += self.shortcut(x)
-        out = F.relu(out)
+        out = self.unirect2(out)
 
         return out
 
@@ -325,7 +426,8 @@ class Cb_Block_Gumbel(nn.Module):
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
         self.cb = cbam.CBAM(planes,reduction_ratio=4,use_gumbel=True,use_gumbel_cb=True)
-
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
@@ -342,11 +444,11 @@ class Cb_Block_Gumbel(nn.Module):
                 )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.unirect1(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
         out = self.cb(out)
         out += self.shortcut(x)
-        out = F.relu(out)
+        out = self.unirect2(out)
         return out
     
 class Cb_Block_GumbelSigmoid(nn.Module):
@@ -359,6 +461,8 @@ class Cb_Block_GumbelSigmoid(nn.Module):
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
         self.cb = cbam.CBAM(planes,reduction_ratio=4,use_gumbel=True,use_gumbel_cb=False)
+        self.unirect1 = UniRect()
+        self.unirect2 = UniRect()
 
 
         self.shortcut = nn.Sequential()
@@ -376,11 +480,11 @@ class Cb_Block_GumbelSigmoid(nn.Module):
                 )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.unirect1(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
         out = self.cb(out)
         out += self.shortcut(x)
-        out = F.relu(out)
+        out = self.unirect2(out)
         return out
 
 class ResNet_s(nn.Module):
@@ -402,7 +506,14 @@ class ResNet_s(nn.Module):
             self.linear = CosNorm_Classifier(64, num_classes,learnable=True)
         else:
             self.linear = nn.Linear(64, num_classes)
+        
+        if (block.__name__.endswith('Gumbel')) or (block.__name__.endswith('GumbelSigmoid')) is True:
+            self.unirect = UniRect()
+        else:
+            self.unirect = nn.ReLU(inplace=True)
+        
         self.apply(_weights_init)
+        
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -414,7 +525,9 @@ class ResNet_s(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+#         out = F.relu(self.bn1(self.conv1(x)))
+        out = self.unirect(self.bn1(self.conv1(x)))
+        
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
@@ -535,8 +648,11 @@ def resnet20():
     return ResNet_s(BasicBlock, [3, 3, 3])
 
 
-def resnet32(num_classes=10, use_norm=None):
-    return ResNet_s(BasicBlock, [5, 5, 5], num_classes=num_classes, use_norm=use_norm)
+def resnet32(num_classes=10, use_norm=None,use_gumbel=False,use_gumbel_cb=False):
+    if use_gumbel is False:
+        return ResNet_s(BasicBlock, [5, 5, 5], num_classes=num_classes, use_norm=use_norm)
+    else:
+        return ResNet_s(BasicBlockGumbel, [5, 5, 5], num_classes=num_classes, use_norm=use_norm)
 
 def se_resnet32(num_classes=10, use_norm=None,use_gumbel=False,use_gumbel_cb=False):
     if use_gumbel is False:

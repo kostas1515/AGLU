@@ -296,7 +296,7 @@ class ResNet(nn.Module):
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         
-        if block.__name__.endswith('Gumbel') is True:
+        if (block.__name__.endswith('Gumbel')) or (block.__name__.endswith('GumbelSigmoid')) is True:
             self.relu = UniRect()
         else:
             self.relu = nn.ReLU(inplace=True)
