@@ -41,5 +41,5 @@ class Unified(nn.Module):
 
      
 <h1> Acknowledgements </h1>
-This repo uses
+This code uses <a href='https://pytorch.org/'>Pytorch</a> and the <a href='https://github.com/open-mmlab/mmdetection'>mmdet</a> framework. Thank you for your wonderfull work!
      
