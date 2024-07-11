@@ -27,8 +27,8 @@ training and evaluation scripts to quickly bootstrap research.
 | `--imb_factor`           | `0.01` | Imbalance Factor. Applicable for Cifar Only |
 | `--auto-augment`         | `cifar10`|  Augmentations as defined in pytorch reference scripts|
 | `--criterion`            | `ce,iif`| When iif, is used then PC_softmax is applied during inference.|
-| `--use_gumbel_se`        | `store_true`|It will use Gumbel Channel Attention.|
-| `--use_gumbel_cb`        | `store_true`|It will use Gumbel Spatial Attention.|
+| `--use_gumbel_se`        | `store_true`|It will use APA inside the Channel Attention.|
+| `--use_gumbel_cb`        | `store_true`|It will use APA inside the Spatial Attention.|
 | `--fn_places`            | `store_true`|This will freeze the backbone, except for last residual block. Applicable for places finetuning|
 | `--pretrained`           |`data-path-to-pretrained-checkpoint`| It will initialise the model's weights from predefined checkpoint|
 | `--decoup`               | `store_true`|Freeze Backbone and train only classifier as in decoupled strategy|
@@ -120,9 +120,9 @@ Please download the model weights and then run inference with Post-processing II
     <tr>
         <td>ImageNet1K</td>
         <td>SE-R152</td>
-        <td>-</td>
+        <td>80.8</td>
         <td><a href="https://drive.usercontent.google.com/download?id=1wrcme0S6rt7KKgZA_1HHm3uf2m0T9UwB&export=download">weights</a></td>
-        <td><a href="-">log</a></td>
+        <td><a href="https://drive.google.com/file/d/14ACu8gyEl-5FpCii5KNbxWqnDQtN4u_Z/view">log</a></td>
     </tr>
 </table>
 
