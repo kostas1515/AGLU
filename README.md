@@ -1,4 +1,18 @@
-<h1> Adaptive Parametric Activation </h1>
+<div align="center">
+<h1>Adaptive Parametric Activation </h1>
+
+[Konstantinos Panagiotis Alexandridis](https://kostas1515.github.io/)<sup>1</sup>, 
+[Jiankang Deng](https://jiankangdeng.github.io/)<sup>1</sup>, 
+[Anh Nguyen](https://cgi.csc.liv.ac.uk/~anguyen/)<sup>2</sup>,
+[Shan Luo](https://shanluo.github.io/)<sup>3</sup>,
+
+<sup>1</sup> Huawei Noah's Ark Lab, 
+<sup>2</sup> University of Liverpool 
+<sup>3</sup> King's College London
+
+ArXiv Preprint ([arXiv 2407.08567](https://arxiv.org/pdf/2407.08567))
+
+</div>
 
 This is the official implementation of Adaptive Parametric Activation (APA) for ECCV2024 accepted paper. 
 
