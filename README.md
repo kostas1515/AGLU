@@ -54,10 +54,20 @@ class Unified(nn.Module):
         
         return p # for AGLU simply return p*input
 ```
-
-
-
      
-<h1> Acknowledgements </h1>
+
+## BibTeX
+
+```bibtex
+@article{alexandridis2024adaptive,
+  title={Adaptive Parametric Activation},
+  author={Alexandridis, Konstantinos Panagiotis and Deng, Jiankang and Nguyen, Anh and Luo, Shan},
+  journal={arXiv preprint arXiv:2407.08567},
+  year={2024}
+}
+```
+
+## Acknowledgements
 This code uses <a href='https://pytorch.org/'>Pytorch</a> and the <a href='https://github.com/open-mmlab/mmdetection'>mmdet</a> framework. Thank you for your wonderfull work!
+
      
