@@ -129,6 +129,6 @@ To test MaskRCNN SE-R50-AGLU+GOL on LVIS use:
         <td>SE-CascadeRCNN-R50-AGLU-APA</td>
         <td>35.4</td>
         <td><a href="https://drive.usercontent.google.com/download?id=1dhF2N-4ndpjFt46MA5hsnXx1zoUGks6u&export=download">weights</a></td>
-        <td>-|<a href="https://drive.google.com/file/d/1l1iA1fBN2fGZV9GxK6k_vLLgk5UJ_IFX/view">config</a></td>
+        <td>n/a|<a href="https://drive.google.com/file/d/1l1iA1fBN2fGZV9GxK6k_vLLgk5UJ_IFX/view">config</a></td>
     </tr>
 </table>
