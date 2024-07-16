@@ -58,7 +58,7 @@ class Unified(nn.Module):
 ## Getting Started
 
 - For **Image Classification**, please see the [README.md](classification/README.md) for detailed instructions and model weights.
-- For **Object Detection and Instance Segmentation**, please see the [README.md](mmdetection_v3.2/README.md).
+- For **Object Detection and Instance Segmentation**, please see the [README.md](mmdetection_v3.2/README.md) for detailed instructions and model weights.
      
 
 ## BibTeX
