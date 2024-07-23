@@ -37,7 +37,7 @@ APA can be used insed the intermediate layers using Adaptive Generalised Linear 
 
 <h3> Simple Code implementation </h3>
 
-```
+```python
 class Unified(nn.Module):
     def __init__(self,device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
