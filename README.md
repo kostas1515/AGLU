@@ -7,10 +7,15 @@
 [Shan Luo](https://shanluo.github.io/)<sup>3</sup>,
 
 <sup>1</sup> Huawei Noah's Ark Lab, 
-<sup>2</sup> University of Liverpool 
+<sup>2</sup> University of Liverpool, 
 <sup>3</sup> King's College London
 
 ArXiv Preprint ([arXiv 2407.08567](https://arxiv.org/pdf/2407.08567))
+
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-places-lt)](https://paperswithcode.com/sota/long-tail-learning-on-places-lt?p=adaptive-parametric-activation)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/instance-segmentation-on-lvis-v1-0-val)](https://paperswithcode.com/sota/instance-segmentation-on-lvis-v1-0-val?p=adaptive-parametric-activation)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-imagenet-lt)](https://paperswithcode.com/sota/long-tail-learning-on-imagenet-lt?p=adaptive-parametric-activation)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-inaturalist-2018)](https://paperswithcode.com/sota/long-tail-learning-on-inaturalist-2018?p=adaptive-parametric-activation)
 
 </div>
 
