@@ -72,11 +72,13 @@ class Unified(nn.Module):
 ## BibTeX
 
 ```bibtex
-@article{alexandridis2024adaptive,
+@inproceedings{alexandridis2024adaptive,
   title={Adaptive Parametric Activation},
   author={Alexandridis, Konstantinos Panagiotis and Deng, Jiankang and Nguyen, Anh and Luo, Shan},
-  journal={arXiv preprint arXiv:2407.08567},
-  year={2024}
+  booktitle={European Conference on Computer Vision},
+  pages={455--476},
+  year={2024},
+  organization={Springer}
 }
 ```
 
