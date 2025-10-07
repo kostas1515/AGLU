@@ -12,10 +12,7 @@
 
 [![Static Badge](https://img.shields.io/badge/ECCV_2024-APA-blue)](https://link.springer.com/chapter/10.1007/978-3-031-72949-2_26)
 [![Static Badge](https://img.shields.io/badge/arxiv-2407.08567-blue)](https://arxiv.org/pdf/2407.08567)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-places-lt)](https://paperswithcode.com/sota/long-tail-learning-on-places-lt?p=adaptive-parametric-activation)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/instance-segmentation-on-lvis-v1-0-val)](https://paperswithcode.com/sota/instance-segmentation-on-lvis-v1-0-val?p=adaptive-parametric-activation)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-imagenet-lt)](https://paperswithcode.com/sota/long-tail-learning-on-imagenet-lt?p=adaptive-parametric-activation)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/adaptive-parametric-activation/long-tail-learning-on-inaturalist-2018)](https://paperswithcode.com/sota/long-tail-learning-on-inaturalist-2018?p=adaptive-parametric-activation)
+
 
 </div>
 
