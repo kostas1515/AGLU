@@ -10,8 +10,8 @@
 <sup>2</sup> University of Liverpool, 
 <sup>3</sup> King's College London
 
-[![Static Badge](https://img.shields.io/badge/ECCV_2024-APA-blue)](https://link.springer.com/chapter/10.1007/978-3-031-72949-2_26)
-[![Static Badge](https://img.shields.io/badge/arxiv-2407.08567-blue)](https://arxiv.org/pdf/2407.08567)
+[![Static Badge](https://img.shields.io/badge/ECCV_2024-video-blue)](https://eccv.ecva.net/virtual/2024/oral/486)
+[![Static Badge](https://img.shields.io/badge/arxiv-2407.08567-blue)](https://arxiv.org/abs/2407.08567)
 
 
 </div>
@@ -22,6 +22,12 @@ This is the official implementation of Adaptive Parametric Activation (APA) for 
      alt="APA unifies most activation functions under the same formula."
      style="float: left; margin-right: 10px;"
 />
+
+# News
+[2025/11/17] We have extended our work, enabling more tasks like large scale image classification using ImageNet21K, image generation using transformers, Multi-modal LLM training using LLaVA One-Vision and more. The preprint is available [here](https://arxiv.org/pdf/2407.08567).
+</br>
+[2024/07/11]: Our paper was accepted at ECCV 2024 as an oral presentation.
+</br>
 
  <h3>Abstract</h3>
 
